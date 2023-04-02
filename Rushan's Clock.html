@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Colourful Clock</title>
+<h5>Colour Changing Clock By RUSHAN</h5>
+	<style>
+		body {
+			background-color: Red;
+			color: white;
+			text-align: center;
+			font-size: 5em;
+			font-family: Arial, sans-serif;
+		}
+
+		.clock {
+			display: inline-block;
+			padding: 0.5em;
+			border-radius: 0.5em;
+			box-shadow: 0 0 1em rgba(255, 255, 255, 0.5);
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			z-index: 1;
+		}
+	</style>
+</head>
+<body>
+	<div class="clock"></div>
+
+	<script>
+		function updateTime() {
+			// get current time
+			var date = new Date();
+			var hours = date.getHours();
+			var minutes = date.getMinutes();
+			var seconds = date.getSeconds();
+
+			// convert to 12-hour format
+			if (hours > 12) {
+				hours -= 12;
+			}
+
+			// pad single-digit minutes and seconds with leading zero
+			if (minutes < 10) {
+				minutes = "0" + minutes;
+			}
+			if (seconds < 10) {
+				seconds = "0" + seconds;
+			}
+
+			// set clock text
+			var clock = document.querySelector(".clock");
+			clock.textContent = hours + ":" + minutes + ":" + seconds;
+   			
+			// set clock background colour based on time
+			var cyan = Math.round(hours / 24 * 255);
+			var grey = Math.round(minutes / 60 * 255);
+			var orange = Math.round(seconds / 60 * 255);
+			clock.style.backgroundColor = "rgb(" + cyan + "," + grey + "," + orange + ")";
+		}
+
+		// update time every second
+		setInterval(updateTime, 1000);
+	</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Camera</title>
+  </head>
+  <body>
+    <h1><center>Camera By RUSHAN</center></h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <button id="snap">Snap Photo</button>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <script>
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const snap = document.getElementById('snap');
+      const context = canvas.getContext('2d');
+
+      // Access the camera and stream video to the video element
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(error => {
+          console.error('Error accessing the camera:', error);
+        });
+
+      // Take a snapshot when the Snap Photo button is clicked
+      snap.addEventListener('click', () => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Save the image to the user's computer
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = 'snapshot.png';
+        link.click();
+      });
+    </script>
+  </body>
+</html>

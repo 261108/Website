@@ -10,21 +10,36 @@
 			padding: 10px;
 		}
 	</style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+	<script>
+		$(document).ready(function() {
+			var socket = new WebSocket("ws://localhost:8000");
+			socket.onopen = function() {
+				console.log("Connected to chat server");
+			}
+			socket.onmessage = function(event) {
+				var data = JSON.parse(event.data);
+				var chatbox = document.getElementById("chatbox");
+				var p = document.createElement("p");
+				p.innerHTML = "<strong>" + data.username + "</strong>: " + data.message;
+				chatbox.appendChild(p);
+			}
+			$("#message").keydown(function(event) {
+				if (event.keyCode === 13) {
+					var message = $(this).val();
+					var username = $("#username").val();
+					var data = {message: message, username: username};
+					socket.send(JSON.stringify(data));
+					$(this).val("");
+				}
+			});
+		});
+	</script>
 </head>
 <body>
 	<div id="chatbox"></div>
-	<input type="text" id="message" placeholder="Enter your message...">
-	<button onclick="sendMessage()">Send</button>
-
-	<script>
-		function sendMessage() {
-			var message = document.getElementById("message").value;
-			document.getElementById("message").value = "";
-			var chatbox = document.getElementById("chatbox");
-			var p = document.createElement("p");
-			p.innerHTML = message;
-			chatbox.appendChild(p);
-		}
-	</script>
+	<input type="text" id="username" placeholder="Enter your username">
+	<input type="text" id="message" placeholder="Enter your message">
 </body>
 </html>
+

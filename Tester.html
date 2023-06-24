@@ -1,0 +1,85 @@
+
+
+<html>
+<head>
+<title>
+HTML  and JavaScript tester
+</title>
+<script>
+
+var myWindow;
+
+function makeWindow(text){
+  //NOTE:  no spaces in the second parameter string!!!
+  myWindow = window.open("","myWindow");
+  myWindow.document.write(text);
+  myWindow.document.close();
+} // end makeWindow
+
+function makeDefault(){
+  // load standard HTML5 boilerplate
+
+  var output = "";
+  output += '<!DOCTYPE HTML> \n';
+  output += '<html lang = "en-us"> \n';
+  output += '<head> \n';
+  output += '  <title></title> \n';
+  output += '  <meta charset = "utf-8" /> \n';
+  output += '</head> \n';
+  output += '<body> \n';
+  output += ' \n';
+  output += '</body> \n';
+  output += '</html> \n';
+
+  var txtInput = document.getElementById('txtInput');
+  txtInput.innerHTML = output;
+} // end makeDefault
+
+</script>
+</head>
+
+<body bgColor = "White">
+<center>
+<form name = "myForm" >
+<h1>HTML / JavaScript tester</h1>
+<hr>
+<!--
+<select name = "selPage">
+  <option value = null>
+  <option value = /home/ajharris/public_html/webDesign/html/standard.html>
+    standard HTML skeleton
+   
+ 
+
+</select>
+<input type = submit 
+       value = "Get source code">
+<br>
+-->
+<button type = "button"
+        onClick = "makeDefault()">
+  default HTML5 source code
+</button>
+
+<input type = "button"
+       value = "show the output"
+       onClick = makeWindow(window.document.myForm.txtInput.value)>
+
+
+<br>
+Type in some HTML below...
+<br>
+<font size = 7>
+<textArea name = txtInput
+          id = "txtInput"
+          rows = 100
+          cols = 80>
+
+</textArea>
+</font>
+<br>
+<hr>
+</form>
+</center>
+</body>
+</html>

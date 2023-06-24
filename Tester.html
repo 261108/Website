@@ -20,11 +20,9 @@ function makeDefault(){
   // load standard HTML5 boilerplate
 
   var output = "";
-  output += '<!DOCTYPE HTML> \n';
   output += '<html lang = "en-us"> \n';
   output += '<head> \n';
-  output += '  <title></title> \n';
-  output += '  <meta charset = "utf-8" /> \n';
+  output += '<title> </title> \n';
   output += '</head> \n';
   output += '<body> \n';
   output += ' \n';
@@ -58,11 +56,11 @@ function makeDefault(){
 -->
 <button type = "button"
         onClick = "makeDefault()">
-  default HTML5 source code
+  HTML Tags
 </button>
 
 <input type = "button"
-       value = "show the output"
+       value = "Run"
        onClick = makeWindow(window.document.myForm.txtInput.value)>
 
 

@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="icon" type="image/x-icon" href="https://www.google.com/url?sa=i&url=https%3A%2F%2Fwallpapers.com%2Fwallpapers%2Fblue-shield-marvel-logo-me8zqnsvdsii8ik5.html&psig=AOvVaw1K-G4Lhk4V1ODKwBUn_-Td&ust=1691939943275000&source=images&cd=vfe&opi=89978449&ved=0CBEQjRxqFwoTCOjT8ti114ADFQAAAAAdAAAAABAD">
+    <title>Confidential</title>
+<script type="text/javascript">
+        // Disable right-click context menu
+        window.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #222; /* Updated background color */
+            font-family: "Courier New", monospace;
+            text-align: center;
+        }
+
+        #logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        #logoImage {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.3);
+        }
+
+        #passwordPrompt {
+            position: absolute;
+            top: 40%; /* Adjusted positioning */
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            text-align: center;
+            color: #00ff00; /* Updated text color */
+        }
+
+        #passwordPrompt label, #passwordPrompt input {
+            display: block;
+            margin: 10px auto;
+        }
+
+        #passwordPrompt button {
+            font-size: 18px; /* Updated font size */
+            background-color: #4CAF50;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #passwordPrompt button:hover {
+            background-color: #45a049;
+        }
+
+        #videoContent {
+            display: none;
+            color: #00ff00; /* New text color */
+        }
+
+        #videoContainers {
+            margin-top: 40px; /* Adjusted margin top */
+        }
+
+        /* New loading animation styles */
+        .loading-animation {
+            position: relative;
+            width: 60px;
+            height: 50px;
+            margin: 0 auto;
+        }
+
+        .loading-animation:before,
+        .loading-animation:after {
+            content: "";
+            position: absolute;
+            border: 4px solid transparent;
+            border-radius: 50%;
+        }
+
+        .loading-animation:before {
+            border-top-color: #00ff00;
+            border-bottom-color: #00ff00;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-animation:after {
+            border-left-color: #00ff00;
+            border-right-color: #00ff00;
+            animation: spin 1s linear reverse infinite;
+        }
+
+        @keyframes spin {
+            0%, 100% {
+                transform: rotate(0);
+            }
+            50% {
+                transform: rotate(180deg);
+            }
+        }
+
+        /* Adjusted video styles */
+        video {
+            max-width: 80%;
+            max-height: 90vh; /* Set maximum height */
+        }
+    </style>
+</head>
+<body>
+<!-- IMPORTANT: Do not modify the password or disclose it to anyone. -->
+<div id="passwordPrompt">
+    <h1>Confidential Shield Files</h1>
+    <label for="passwordInput">Enter access code:</label>
+    <input type="password" id="passwordInput">
+    <button onclick="checkPassword()">Access</button>
+</div>
+
+<div id="logo">
+    <img src="https://w7.pngwing.com/pngs/560/211/png-transparent-iron-man-captain-america-phil-coulson-s-h-i-e-l-d-marvel-cinematic-universe-iron-man-marvel-avengers-assemble-avengers-logo.png" alt="Logo" id="logoImage">
+</div>
+
+<div id="videoContent">
+    <label for="numberInput">Enter File Number:</label><br>
+    <input type="number" id="numberInput" min="1">
+    <button onclick="generateLinks()">Get Files</button>
+
+    <div id="videoContainers">
+        <div>
+            <video controls id="videoPlayer1" style="display: none;">
+                <source id="videoSource1" type="video/mp4">
+                Your browser does not support the video tag.
+                <div class="loading-animation"></div>
+            </video>
+        </div>
+        <div>
+            <video controls id="videoPlayer2" style="display: none;">
+                <source id="videoSource2" type="video/mp4">
+                Your browser does not support the video tag.
+                <div class="loading-animation"></div>
+            </video>
+        </div>
+    </div>
+</div>
+
+<script>
+    const correctPassword = "https://w7.pngwing.com/pngs/560/211/png-transparent-iron-man-captain-america-phil-coulson-s-h-i-e-l-d-marvel-cinematic-universe-iron-man-marvel-avengers-assemble-avengers-logo.png";
+    function checkPassword() {
+        const passwordInput = document.getElementById("passwordInput").value;
+        if (passwordInput === correctPassword) {
+            document.getElementById("passwordPrompt").style.display = "none";
+            document.getElementById("videoContent").style.display = "block";
+        } else {
+            alert("Incorrect Password. Location Revealed. Shield Agents Coming"); /* Changed alert message */
+        }
+    }
+
+    function generateLinks() {
+        const baseLinks = [
+            "https://zeus.gotanynudes.com/Bestiktok",
+            "https://zeus.gotanynudes.com/Besttiktok"
+        ];
+
+        const number = document.getElementById("numberInput").value;
+        const generatedLink = (number >= 106) ? `${baseLinks[0]}${number}.mp4` : `${baseLinks[1]}${number}.mp4`;
+
+        const videoPlayer1 = document.getElementById("videoPlayer1");
+        const videoSource1 = document.getElementById("videoSource1");
+        const videoPlayer2 = document.getElementById("videoPlayer2");
+        const videoSource2 = document.getElementById("videoSource2");
+
+        if (number >= 106) {
+            videoSource1.src = generatedLink;
+            videoPlayer1.style.display = "block";
+            videoPlayer1.load();
+            videoPlayer1.onerror = () => {
+                videoPlayer1.style.display = "none";
+                alert("File Deleted by Shield"); /* New alert message */
+            }
+            videoPlayer2.style.display = "none";
+        } else {
+            videoSource2.src = generatedLink;
+            videoPlayer2.style.display = "block";
+            videoPlayer2.load();
+            videoPlayer2.onerror = () => {
+                videoPlayer2.style.display = "none";
+                alert("File Deleted by Shield"); /* New alert message */
+            }
+            videoPlayer1.style.display = "none";
+        }
+    }
+</script>
+</body>
+</html>

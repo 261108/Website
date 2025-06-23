@@ -88,13 +88,30 @@
             text-align: center;
         }
         .message-box {
-            background-color: #fff3cd;
-            border-color: #ffeeba;
-            color: #856404;
             padding: 0.75rem 1.25rem;
             border: 1px solid transparent;
             border-radius: 0.25rem;
             margin-top: 1rem;
+        }
+        .message-box.info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .message-box.success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .message-box.warning {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
+        .message-box.error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
         }
         .btn-primary {
             background-color: #3b82f6;
@@ -144,7 +161,7 @@
         <!-- User ID Display -->
         <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative text-sm" role="alert">
             <strong class="font-bold">Your User ID:</strong>
-            <span id="user-id-display" class="block sm:inline break-all">Loading...</span>
+            <span id="user-id-display" class="block sm:inline break-all">Authenticating...</span>
         </div>
 
         <!-- Upload Section -->
@@ -152,11 +169,11 @@
             <label for="image-input" class="text-lg text-gray-700">Select an Image:</label>
             <input type="file" id="image-input" accept="image/*" class="w-full p-2 border border-gray-300 rounded-md mt-1">
             <div class="flex flex-col sm:flex-row gap-4 mt-4">
-                <button id="upload-btn" class="btn-primary flex items-center justify-center">
+                <button id="upload-btn" class="btn-primary flex items-center justify-center" disabled>
                     Upload Image
                     <span id="upload-spinner" class="loading-spinner hidden"></span>
                 </button>
-                <button id="clear-all-btn" class="btn-danger flex items-center justify-center">
+                <button id="clear-all-btn" class="btn-danger flex items-center justify-center" disabled>
                     Clear All Images
                     <span id="clear-spinner" class="loading-spinner hidden"></span>
                 </button>
@@ -181,8 +198,15 @@
         import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables for Firebase config, app ID, and auth token
+        // These are expected to be injected by the Canvas environment.
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        let firebaseConfig = {};
+        try {
+            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        } catch (e) {
+            console.error("Error parsing __firebase_config:", e);
+            // firebaseConfig will remain an empty object, causing init to fail
+        }
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         // Firebase instances
@@ -211,18 +235,11 @@
         /**
          * Displays a message in the message box.
          * @param {string} message The message to display.
-         * @param {string} type The type of message (e.g., 'success', 'error', 'warning').
+         * @param {string} type The type of message (e.g., 'info', 'success', 'warning', 'error').
          */
         function showMessage(message, type = 'info') {
             messageBox.textContent = message;
-            messageBox.className = 'message-box'; // Reset classes
-            if (type === 'error') {
-                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
-            } else if (type === 'success') {
-                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
-            } else { // info or warning
-                messageBox.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
-            }
+            messageBox.className = `message-box ${type}`;
             messageBox.classList.remove('hidden');
             setTimeout(() => {
                 messageBox.classList.add('hidden');
@@ -292,7 +309,6 @@
             });
         }
 
-
         /**
          * Deletes an image from Firestore.
          * @param {string} imageId The ID of the image document to delete.
@@ -339,11 +355,20 @@
             });
         }
 
-
         /**
          * Initializes Firebase and sets up authentication listener.
          */
         async function initFirebase() {
+            userIdDisplay.textContent = 'Authenticating...';
+            uploadBtn.disabled = true;
+            clearAllBtn.disabled = true;
+
+            if (Object.keys(firebaseConfig).length === 0) {
+                showMessage("Firebase configuration is missing or invalid. Please ensure the environment provides __firebase_config.", 'error');
+                userIdDisplay.textContent = 'Auth Failed (Config Missing)';
+                return;
+            }
+
             try {
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -358,17 +383,20 @@
                         setupRealtimeImageListener(); // Setup listener once authenticated
                         uploadBtn.disabled = false;
                         clearAllBtn.disabled = false;
+                        showMessage('Authentication successful!', 'success');
                     } else {
                         // Attempt to sign in anonymously if no user or custom token
                         try {
                             if (initialAuthToken) {
                                 await signInWithCustomToken(auth, initialAuthToken);
+                                showMessage('Signed in with custom token.', 'info');
                             } else {
                                 await signInAnonymously(auth);
+                                showMessage('Signed in anonymously.', 'info');
                             }
                         } catch (error) {
                             console.error('Error signing in:', error);
-                            userIdDisplay.textContent = 'Authentication Failed';
+                            userIdDisplay.textContent = 'Auth Failed (Error)';
                             showMessage('Authentication failed: ' + error.message, 'error');
                             uploadBtn.disabled = true;
                             clearAllBtn.disabled = true;
@@ -440,33 +468,4 @@
                     <button class="image-delete-btn" data-id="${img.id}">X</button>
                     <p class="image-name">${img.name}</p>
                 `;
-                imageDisplayArea.appendChild(imgElement);
-
-                // Add event listener for the delete button
-                imgElement.querySelector('.image-delete-btn').addEventListener('click', (event) => {
-                    const imageIdToDelete = event.target.dataset.id;
-                    deleteImage(imageIdToDelete);
-                });
-            });
-        }
-
-        /**
-         * Handles the image upload process, now including compression.
-         */
-        async function handleUpload() {
-            if (!db || !userId || !auth.currentUser) {
-                showMessage('Firebase not initialized or user not authenticated.', 'error');
-                return;
-            }
-
-            const file = imageInput.files[0];
-            if (!file) {
-                showMessage('Please select an image file to upload.', 'warning');
-                return;
-            }
-
-            uploadBtn.disabled = true;
-            uploadSpinner.classList.remove('hidden');
-
-            try {
-                // Compress the image before converting to Ba
+    

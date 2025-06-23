@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Uploader</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font and basic styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top for better layout on small screens */
+            min-height: 100vh; /* Full viewport height */
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #ffffff;
+            padding: 2rem;
+            border-radius: 0.75rem; /* Rounded corners */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .image-item {
+            position: relative;
+            background-color: #f8f8f8;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .image-item img {
+            max-width: 100%;
+            height: auto;
+            max-height: 120px; /* Limit image height in grid */
+            object-fit: contain; /* Ensure image fits without cropping */
+            border-radius: 0.25rem;
+        }
+        .image-delete-btn {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background-color: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .image-delete-btn:hover {
+            opacity: 1;
+        }
+        .image-name {
+            font-size: 0.75rem;
+            color: #4a5568;
+            margin-top: 0.5rem;
+            word-break: break-all; /* Break long words */
+            text-align: center;
+        }
+        .message-box {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+            padding: 0.75rem 1.25rem;
+            border: 1px solid transparent;
+            border-radius: 0.25rem;
+            margin-top: 1rem;
+        }
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            cursor: pointer;
+        }
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 bg-gray-100 flex justify-center items-start min-h-screen">
+    <div class="container">
+        <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-4">Image Uploader</h1>
+
+        <!-- User ID Display -->
+        <div class="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded relative text-sm" role="alert">
+            <strong class="font-bold">Your User ID:</strong>
+            <span id="user-id-display" class="block sm:inline break-all">Loading...</span>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="input-group">
+            <label for="image-input" class="text-lg text-gray-700">Select an Image:</label>
+            <input type="file" id="image-input" accept="image/*" class="w-full p-2 border border-gray-300 rounded-md mt-1">
+            <div class="flex flex-col sm:flex-row gap-4 mt-4">
+                <button id="upload-btn" class="btn-primary flex items-center justify-center">
+                    Upload Image
+                    <span id="upload-spinner" class="loading-spinner hidden"></span>
+                </button>
+                <button id="clear-all-btn" class="btn-danger flex items-center justify-center">
+                    Clear All Images
+                    <span id="clear-spinner" class="loading-spinner hidden"></span>
+                </button>
+            </div>
+            <div id="message-box" class="message-box hidden" role="alert"></div>
+        </div>
+
+        <!-- Display Section -->
+        <div class="mt-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Uploaded Images</h2>
+            <div id="image-display-area" class="image-grid">
+                <!-- Images will be loaded here -->
+                <p id="no-images-message" class="col-span-full text-center text-gray-500">No images uploaded yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase config, app ID, and auth token
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Firebase instances
+        let app;
+        let db;
+        let auth;
+        let userId = 'loading...'; // Default loading state
+        let unsubscribeFromImages = null; // To store the unsubscribe function for snapshot listener
+
+        // DOM elements
+        const imageInput = document.getElementById('image-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const imageDisplayArea = document.getElementById('image-display-area');
+        const noImagesMessage = document.getElementById('no-images-message');
+        const messageBox = document.getElementById('message-box');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const uploadSpinner = document.getElementById('upload-spinner');
+        const clearSpinner = document.getElementById('clear-spinner');
+
+        // Configuration for image compression
+        const IMAGE_MAX_WIDTH = 800; // Max width for compressed images
+        const IMAGE_QUALITY = 0.7;   // Compression quality (0 to 1, 1 being highest)
+        const MAX_UPLOAD_SIZE_BYTES = 900 * 1024; // Max allowed size after compression (slightly less than 1MB Firestore limit)
+
+        /**
+         * Displays a message in the message box.
+         * @param {string} message The message to display.
+         * @param {string} type The type of message (e.g., 'success', 'error', 'warning').
+         */
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.className = 'message-box'; // Reset classes
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'border-green-400', 'text-green-700');
+            } else { // info or warning
+                messageBox.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+            }
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
+        }
+
+        /**
+         * Converts an Image File object to a Base64 encoded string.
+         * This function is now used to load the image into an Image object for compression.
+         * @param {File} imageFile The image file to convert.
+         * @returns {Promise<string>} A promise that resolves with the Base64 string.
+         */
+        function fileToDataURL(imageFile) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(imageFile);
+            });
+        }
+
+        /**
+         * Compresses an image and returns its Base64 representation.
+         * Resizes the image if its width exceeds IMAGE_MAX_WIDTH and applies IMAGE_QUALITY.
+         * @param {File} imageFile The image file to compress.
+         * @returns {Promise<string>} A promise that resolves with the compressed Base64 string.
+         */
+        async function compressImage(imageFile) {
+            return new Promise(async (resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions if image is too wide
+                    if (width > IMAGE_MAX_WIDTH) {
+                        height = Math.round((height * IMAGE_MAX_WIDTH) / width);
+                        width = IMAGE_MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw image on canvas
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Get compressed data URL
+                    try {
+                        const compressedDataUrl = canvas.toDataURL(imageFile.type, IMAGE_QUALITY);
+                        resolve(compressedDataUrl);
+                    } catch (error) {
+                        reject(new Error("Failed to compress image: " + error.message));
+                    }
+                };
+                img.onerror = () => reject(new Error("Failed to load image for compression."));
+
+                // Load the image source
+                try {
+                    const dataUrl = await fileToDataURL(imageFile);
+                    img.src = dataUrl;
+                } catch (error) {
+                    reject(new Error("Failed to read image file: " + error.message));
+                }
+            });
+        }
+
+
+        /**
+         * Deletes an image from Firestore.
+         * @param {string} imageId The ID of the image document to delete.
+         */
+        async function deleteImage(imageId) {
+            if (!db || !userId || !auth.currentUser) {
+                showMessage('Firebase not initialized or user not authenticated.', 'error');
+                return;
+            }
+
+            // Custom confirmation dialog
+            const confirmDelete = document.createElement('div');
+            confirmDelete.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            confirmDelete.innerHTML = `
+                <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
+                    <p class="text-lg font-semibold mb-4 text-gray-800">Are you sure you want to delete this image?</p>
+                    <div class="flex justify-center gap-4">
+                        <button id="confirm-delete-yes" class="btn-danger px-6 py-2">Yes, Delete</button>
+                        <button id="confirm-delete-no" class="btn-primary px-6 py-2">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmDelete);
+
+            return new Promise(resolve => {
+                document.getElementById('confirm-delete-yes').onclick = async () => {
+                    document.body.removeChild(confirmDelete);
+                    try {
+                        const imageRef = doc(db, `artifacts/${appId}/users/${userId}/uploaded_images`, imageId);
+                        await deleteDoc(imageRef);
+                        showMessage('Image deleted successfully!', 'success');
+                        resolve(true); // Resolve with true if deleted
+                    } catch (error) {
+                        console.error('Error deleting image:', error);
+                        showMessage('Error deleting image: ' + error.message, 'error');
+                        resolve(false); // Resolve with false if error
+                    }
+                };
+                document.getElementById('confirm-delete-no').onclick = () => {
+                    document.body.removeChild(confirmDelete);
+                    showMessage('Deletion cancelled.', 'info');
+                    resolve(false); // Resolve with false if cancelled
+                };
+            });
+        }
+
+
+        /**
+         * Initializes Firebase and sets up authentication listener.
+         */
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Listen for authentication state changes
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = userId;
+                        console.log('User authenticated:', userId);
+                        setupRealtimeImageListener(); // Setup listener once authenticated
+                        uploadBtn.disabled = false;
+                        clearAllBtn.disabled = false;
+                    } else {
+                        // Attempt to sign in anonymously if no user or custom token
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error('Error signing in:', error);
+                            userIdDisplay.textContent = 'Authentication Failed';
+                            showMessage('Authentication failed: ' + error.message, 'error');
+                            uploadBtn.disabled = true;
+                            clearAllBtn.disabled = true;
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showMessage("Failed to initialize Firebase: " + error.message, 'error');
+                userIdDisplay.textContent = 'Error Init';
+            }
+        }
+
+        /**
+         * Sets up the real-time listener for images from Firestore.
+         */
+        function setupRealtimeImageListener() {
+            if (!db || !userId || !auth.currentUser) {
+                console.log('Cannot set up listener: Firebase not ready or user not authenticated.');
+                return;
+            }
+
+            // Unsubscribe from previous listener if exists to prevent duplicates
+            if (unsubscribeFromImages) {
+                unsubscribeFromImages();
+            }
+
+            // Reference to the user's images collection
+            const imagesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/uploaded_images`);
+
+            // Query to get images. Sorting will be done client-side.
+            const q = query(imagesCollectionRef);
+
+            unsubscribeFromImages = onSnapshot(q, (snapshot) => {
+                const images = [];
+                snapshot.forEach((doc) => {
+                    images.push({ id: doc.id, ...doc.data() });
+                });
+                // Sort images by timestamp in descending order (most recent first)
+                images.sort((a, b) => b.timestamp - a.timestamp);
+                displayImages(images);
+                console.log("Images updated:", images.length);
+            }, (error) => {
+                console.error("Error getting real-time images:", error);
+                showMessage("Error loading images: " + error.message, 'error');
+            });
+        }
+
+        /**
+         * Displays the fetched images in the UI.
+         * @param {Array<Object>} images An array of image objects from Firestore.
+         */
+        function displayImages(images) {
+            imageDisplayArea.innerHTML = ''; // Clear previous images
+
+            if (images.length === 0) {
+                noImagesMessage.classList.remove('hidden');
+                imageDisplayArea.appendChild(noImagesMessage);
+                return;
+            } else {
+                noImagesMessage.classList.add('hidden');
+            }
+
+            images.forEach(img => {
+                const imgElement = document.createElement('div');
+                imgElement.className = 'image-item group';
+                imgElement.innerHTML = `
+                    <img src="${img.data}" alt="${img.name}" loading="lazy">
+                    <button class="image-delete-btn" data-id="${img.id}">X</button>
+                    <p class="image-name">${img.name}</p>
+                `;
+                imageDisplayArea.appendChild(imgElement);
+
+                // Add event listener for the delete button
+                imgElement.querySelector('.image-delete-btn').addEventListener('click', (event) => {
+                    const imageIdToDelete = event.target.dataset.id;
+                    deleteImage(imageIdToDelete);
+                });
+            });
+        }
+
+        /**
+         * Handles the image upload process, now including compression.
+         */
+        async function handleUpload() {
+            if (!db || !userId || !auth.currentUser) {
+                showMessage('Firebase not initialized or user not authenticated.', 'error');
+                return;
+            }
+
+            const file = imageInput.files[0];
+            if (!file) {
+                showMessage('Please select an image file to upload.', 'warning');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.remove('hidden');
+
+            try {
+                // Compress the image before converting to Ba

@@ -199,12 +199,6 @@
         <div id="main-content" class="w-full hidden">
             <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-4">Free Cloud</h1>
 
-            <!-- User Info Section -->
-            <div class="bg-blue-100 border border-blue-400 text-blue-700 px-6 py-4 rounded-xl relative text-sm mb-6 shadow-sm">
-                <strong class="font-bold">Your Session ID:</strong>
-                <span id="user-id-display" class="block sm:inline break-all font-mono">Authenticating...</span>
-            </div>
-
             <!-- Upload Section -->
             <div class="upload-section bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Upload a New Image</h2>
@@ -212,7 +206,7 @@
                     <label for="image-input" class="text-gray-700">Select an Image to Share:</label>
                     <input type="file" id="image-input" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg mt-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <button id="upload-btn" class="btn-primary flex items-center justify-center mt-6 w-full" disabled>
+                <button id="upload-btn" class="btn-primary flex items-center justify-center mt-6 w-full">
                     Upload to the Cloud
                     <span id="upload-spinner" class="loading-spinner hidden"></span>
                 </button>
@@ -230,52 +224,28 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables for Firebase config, app ID, and auth token
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        } catch (e) {
-            console.error("Error parsing __firebase_config:", e);
-        }
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // Firebase instances
-        let app;
-        let db;
-        let auth;
-        let currentUserId = 'loading...';
-        let unsubscribeFromImages = null;
-
+    <!-- Main Application Script -->
+    <script>
         // DOM elements
         const imageInput = document.getElementById('image-input');
         const uploadBtn = document.getElementById('upload-btn');
         const imageDisplayArea = document.getElementById('image-display-area');
         const noImagesMessage = document.getElementById('no-images-message');
         const messageBox = document.getElementById('message-box');
-        const userIdDisplay = document.getElementById('user-id-display');
         const uploadSpinner = document.getElementById('upload-spinner');
         
-        // New password-related DOM elements
+        // Password-related DOM elements
         const passwordContent = document.getElementById('password-content');
         const passwordInput = document.getElementById('password-input');
         const passwordSubmitBtn = document.getElementById('password-submit-btn');
         const passwordMessage = document.getElementById('password-message');
         const mainContent = document.getElementById('main-content');
 
-
         // Configuration for image compression
         const IMAGE_MAX_WIDTH = 800; // Max width for compressed images
         const IMAGE_QUALITY = 0.7;   // Compression quality (0 to 1, 1 being highest)
-        // Max allowed size after compression (slightly less than 1MB Firestore limit, Base64 adds ~33% overhead)
-        const MAX_UPLOAD_SIZE_BYTES = 900 * 1024;
-
+        const LOCAL_STORAGE_KEY = 'uploaded_images';
+        
         /**
          * Displays a message in the message box.
          * @param {string} message The message to display.
@@ -376,182 +346,6 @@
                 return 'Unknown IP';
             }
         }
-
-        /**
-         * Initializes Firebase and sets up authentication listener.
-         */
-        async function initFirebase() {
-            userIdDisplay.textContent = 'Authenticating...';
-            uploadBtn.disabled = true; // Disable until authenticated
-
-            if (Object.keys(firebaseConfig).length === 0) {
-                showMessage("Firebase configuration is missing or invalid. Please ensure the environment provides __firebase_config.", 'error');
-                userIdDisplay.textContent = 'Auth Failed (Config Missing)';
-                return;
-            }
-
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Listen for authentication state changes
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUserId = user.uid; // Store the user ID for session context
-                        userIdDisplay.textContent = currentUserId;
-                        console.log('User authenticated:', currentUserId);
-                        setupRealtimeImageListener(); // Setup listener once authenticated
-                        uploadBtn.disabled = false; // Enable button once authenticated
-                        showMessage('Authentication successful. You can now upload images!', 'success');
-                    } else {
-                        // Attempt to sign in anonymously if no user or custom token
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                                showMessage('Signed in with custom token.', 'info');
-                            } else {
-                                await signInAnonymously(auth);
-                                showMessage('Signed in anonymously.', 'info');
-                            }
-                        } catch (error) {
-                            console.error('Error signing in:', error);
-                            userIdDisplay.textContent = 'Auth Failed (Error)';
-                            showMessage('Authentication failed: ' + error.message + '. Images cannot be uploaded.', 'error');
-                            uploadBtn.disabled = true; // Keep disabled if auth fails
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showMessage("Failed to initialize Firebase: " + error.message + ". Images cannot be uploaded.", 'error');
-                userIdDisplay.textContent = 'Error Init';
-            }
-        }
-
-        /**
-         * Sets up the real-time listener for images from the public Firestore collection.
-         */
-        function setupRealtimeImageListener() {
-            if (!db) {
-                console.log('Cannot set up listener: Firebase not ready.');
-                return;
-            }
-
-            // Unsubscribe from previous listener if exists to prevent duplicates
-            if (unsubscribeFromImages) {
-                unsubscribeFromImages();
-            }
-
-            // Reference to the PUBLIC images collection
-            // All users will write to and read from this single collection.
-            const imagesCollectionRef = collection(db, `artifacts/${appId}/public/data/uploaded_images`);
-
-            // Query to get images, ordered by timestamp for most recent first.
-            const q = query(imagesCollectionRef, orderBy('timestamp', 'desc')); // Order by timestamp directly
-
-            unsubscribeFromImages = onSnapshot(q, (snapshot) => {
-                const images = [];
-                snapshot.forEach((doc) => {
-                    images.push({ id: doc.id, ...doc.data() });
-                });
-                displayImages(images);
-                console.log("Images updated:", images.length);
-            }, (error) => {
-                console.error("Error getting real-time images:", error);
-                showMessage("Error loading images: " + error.message, 'error');
-            });
-        }
-
-        /**
-         * Displays the fetched images in the UI.
-         * @param {Array<Object>} images An array of image objects from Firestore.
-         */
-        function displayImages(images) {
-            imageDisplayArea.innerHTML = ''; // Clear previous images
-
-            if (images.length === 0) {
-                noImagesMessage.classList.remove('hidden');
-                imageDisplayArea.appendChild(noImagesMessage);
-                return;
-            } else {
-                noImagesMessage.classList.add('hidden');
-            }
-
-            images.forEach(img => {
-                const imgElement = document.createElement('div');
-                imgElement.className = 'image-item';
-                imgElement.setAttribute('data-image-data', img.data);
-                imgElement.innerHTML = `
-                    <div class="image-info"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
-                    <img src="${img.data}" alt="${img.name}" loading="lazy">
-                    <div class="image-info mt-auto pt-2">${img.name}</div>
-                    <button class="btn-secondary w-full mt-4 describe-btn" data-image-id="${img.id}">
-                        ✨ Describe Image
-                    </button>
-                    <div class="description-box hidden"></div>
-                `;
-                imageDisplayArea.appendChild(imgElement);
-            });
-        }
-
-        /**
-         * Handles the image upload process, now including compression.
-         */
-        async function handleUpload() {
-            // Ensure Firebase is ready and user is authenticated (even anonymously)
-            if (!db || !auth || !auth.currentUser) {
-                showMessage('Firebase not ready or you are not authenticated. Please wait for initialization.', 'error');
-                return;
-            }
-
-            const file = imageInput.files[0];
-            if (!file) {
-                showMessage('Please select an image file to upload.', 'warning');
-                return;
-            }
-
-            uploadBtn.disabled = true;
-            uploadSpinner.classList.remove('hidden');
-            uploadBtn.textContent = 'Uploading...';
-
-            try {
-                showMessage('Compressing image...', 'info');
-                const compressedDataUrl = await compressImage(file);
-                const ipAddress = await getIpAddress(); // Fetch IP address here
-
-                // Get size of compressed Base64 string (approximate)
-                const compressedSize = Math.round((compressedDataUrl.length - compressedDataUrl.indexOf(',') - 1) * 0.75);
-
-                if (compressedSize > MAX_UPLOAD_SIZE_BYTES) {
-                    showMessage(`Compressed image is still too large (${(compressedSize / 1024).toFixed(2)}KB). Max allowed is ${(MAX_UPLOAD_SIZE_BYTES / 1024).toFixed(0)}KB. Please choose a smaller image or one with less detail.`, 'error');
-                    return;
-                }
-
-                // Create a document in the public collection
-                const imageDocRef = doc(collection(db, `artifacts/${appId}/public/data/uploaded_images`));
-
-                await setDoc(imageDocRef, {
-                    name: file.name,
-                    originalSize: file.size,
-                    compressedSize: compressedSize,
-                    type: file.type,
-                    data: compressedDataUrl,
-                    timestamp: Date.now(), // Timestamp for ordering
-                    ipAddress: ipAddress // Store the fetched IP address
-                });
-
-                showMessage('Image uploaded and shared successfully!', 'success');
-                imageInput.value = ''; // Clear the file input
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                showMessage('Error uploading image: ' + error.message, 'error');
-            } finally {
-                uploadBtn.disabled = false;
-                uploadSpinner.classList.add('hidden');
-                uploadBtn.textContent = 'Upload to the Cloud';
-            }
-        }
         
         /**
          * Fetches a description of an image using the Gemini API.
@@ -593,26 +387,115 @@
             }
         }
 
-        // Initialize Firebase and set up event listeners when the DOM is ready
-        document.addEventListener('DOMContentLoaded', async () => {
+        /**
+         * Loads images from localStorage and displays them.
+         */
+        function loadImages() {
+            const storedImages = localStorage.getItem(LOCAL_STORAGE_KEY);
+            const images = storedImages ? JSON.parse(storedImages) : [];
+            displayImages(images);
+        }
+
+        /**
+         * Displays the fetched images in the UI.
+         * @param {Array<Object>} images An array of image objects.
+         */
+        function displayImages(images) {
+            imageDisplayArea.innerHTML = ''; // Clear previous images
+
+            if (images.length === 0) {
+                noImagesMessage.classList.remove('hidden');
+                imageDisplayArea.appendChild(noImagesMessage);
+                return;
+            } else {
+                noImagesMessage.classList.add('hidden');
+            }
+
+            images.forEach(img => {
+                const imgElement = document.createElement('div');
+                imgElement.className = 'image-item';
+                imgElement.setAttribute('data-image-data', img.data);
+                imgElement.setAttribute('data-mime-type', img.type);
+                imgElement.innerHTML = `
+                    <div class="image-info"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
+                    <img src="${img.data}" alt="${img.name}" loading="lazy">
+                    <div class="image-info mt-auto pt-2">${img.name}</div>
+                    <button class="btn-secondary w-full mt-4 describe-btn">
+                        ✨ Describe Image
+                    </button>
+                    <div class="description-box hidden"></div>
+                `;
+                imageDisplayArea.appendChild(imgElement);
+            });
+        }
+
+        /**
+         * Handles the image upload process, now using localStorage.
+         */
+        async function handleUpload() {
+            const file = imageInput.files[0];
+            if (!file) {
+                showMessage('Please select an image file to upload.', 'warning');
+                return;
+            }
+            
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.remove('hidden');
+            uploadBtn.textContent = 'Uploading...';
+
+            try {
+                showMessage('Compressing image...', 'info');
+                const compressedDataUrl = await compressImage(file);
+                const ipAddress = await getIpAddress();
+                
+                const uploadedImages = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [];
+                
+                const newImage = {
+                    name: file.name,
+                    type: file.type,
+                    data: compressedDataUrl,
+                    timestamp: Date.now(),
+                    ipAddress: ipAddress
+                };
+                
+                // Add new image to the beginning of the array for chronological order
+                uploadedImages.unshift(newImage);
+
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(uploadedImages));
+
+                showMessage('Image uploaded and saved to your browser!', 'success');
+                imageInput.value = '';
+                loadImages(); // Refresh the display
+                
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                showMessage('Error uploading image: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadSpinner.classList.add('hidden');
+                uploadBtn.textContent = 'Upload to the Cloud';
+            }
+        }
+
+        // Initialize and set up event listeners
+        document.addEventListener('DOMContentLoaded', () => {
             // Password logic
             passwordSubmitBtn.addEventListener('click', () => {
                 const enteredPassword = passwordInput.value;
-                
                 const now = new Date();
                 const hours = String(now.getHours()).padStart(2, '0');
                 const minutes = String(now.getMinutes()).padStart(2, '0');
                 const currentTimePassword = hours + minutes;
                 
                 if (enteredPassword === currentTimePassword) {
-                    passwordContent.remove(); // Use .remove() to completely delete the password div
+                    passwordContent.remove();
                     mainContent.classList.remove('hidden');
-                    initFirebase(); // Only initialize Firebase on successful password
+                    loadImages(); // Load images after successful password
                 } else {
                     passwordMessage.textContent = 'Incorrect password. Please try again.';
                     passwordMessage.classList.remove('hidden');
-                    passwordInput.value = ''; // Clear input
-                    setTimeout(() => { passwordMessage.classList.add('hidden'); }, 3000); // Hide error after 3 seconds
+                    passwordInput.value = '';
+                    setTimeout(() => { passwordMessage.classList.add('hidden'); }, 3000);
                 }
             });
 
@@ -624,10 +507,10 @@
                 if (target.classList.contains('describe-btn')) {
                     const imageItem = target.closest('.image-item');
                     const imageData = imageItem.getAttribute('data-image-data');
+                    const mimeType = imageItem.getAttribute('data-mime-type');
                     const descriptionBox = imageItem.querySelector('.description-box');
-                    const imageElement = imageItem.querySelector('img');
 
-                    if (!imageData || !imageElement) {
+                    if (!imageData || !mimeType) {
                         descriptionBox.textContent = "Error: Image data not found.";
                         descriptionBox.classList.remove('hidden');
                         return;
@@ -640,7 +523,6 @@
                     
                     try {
                         const base64Data = dataUrlToBase64(imageData);
-                        const mimeType = imageElement.src.split(';')[0].split(':')[1];
                         const description = await getGeminiImageDescription(base64Data, mimeType);
                         descriptionBox.textContent = description;
                     } catch (error) {

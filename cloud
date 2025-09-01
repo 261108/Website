@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rushan's Free Cloud</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Apply Inter font and basic styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            box-sizing: border-box;
+            color: #334155;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 10px -5px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .image-item {
+            position: relative;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .image-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .image-info {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            word-break: break-all;
+        }
+        
+        .message-box {
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .message-box.info {
+            background-color: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        .message-box.success {
+            background-color: #dcfce7;
+            color: #15803d;
+            border: 1px solid #6ee7b7;
+        }
+        .message-box.warning {
+            background-color: #fef9c3;
+            color: #a16207;
+            border: 1px solid #fde047;
+        }
+        .message-box.error {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        
+        .btn-secondary {
+            background-color: #64748b;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #ffffff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+        
+        #password-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="p-4 bg-gray-100 flex justify-center items-center min-h-screen">
+    <!-- Main container for the app's content -->
+    <div id="app-container" class="container">
+        
+        <!-- Password Content -->
+        <div id="password-content">
+            <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Enter Password</h1>
+            <div class="w-full max-w-sm mb-4">
+                <input type="text" id="password-input" class="w-full p-4 border border-gray-300 rounded-xl text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="" maxlength="4">
+            </div>
+            <button id="password-submit-btn" class="btn-primary w-full max-w-sm">
+                Submit
+            </button>
+            <div id="password-message" class="message-box mt-4 hidden" role="alert"></div>
+        </div>
+        
+        <!-- Main App Content -->
+        <div id="main-content" class="w-full hidden">
+            <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-4">Rushan's Free Cloud</h1>
+
+            <!-- Upload Section -->
+            <div class="upload-section bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Upload a New Image</h2>
+                <div class="input-group">
+                    <label for="image-input" class="text-gray-700">Select an Image to Share:</label>
+                    <input type="file" id="image-input" accept="image/*" class="w-full p-2 border border-gray-300 rounded-lg mt-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button id="upload-btn" class="btn-primary flex items-center justify-center mt-6 w-full">
+                    Upload to the Cloud
+                    <span id="upload-spinner" class="loading-spinner hidden"></span>
+                </button>
+                <div id="message-box" class="message-box hidden" role="alert"></div>
+            </div>
+
+            <!-- Display Section -->
+            <div class="display-section mt-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Shared Images</h2>
+                <div id="image-display-area" class="image-grid">
+                    <!-- Images will be loaded here -->
+                    <p id="no-images-message" class="col-span-full text-center text-gray-500 text-sm italic">No images uploaded yet. Be the first to share!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase services
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        
+        // DOM elements
+        const imageInput = document.getElementById('image-input');
+        const uploadBtn = document.getElementById('upload-btn');
+        const imageDisplayArea = document.getElementById('image-display-area');
+        const noImagesMessage = document.getElementById('no-images-message');
+        const messageBox = document.getElementById('message-box');
+        const uploadSpinner = document.getElementById('upload-spinner');
+        
+        // Password-related DOM elements
+        const passwordContent = document.getElementById('password-content');
+        const passwordInput = document.getElementById('password-input');
+        const passwordSubmitBtn = document.getElementById('password-submit-btn');
+        const passwordMessage = document.getElementById('password-message');
+        const mainContent = document.getElementById('main-content');
+
+        // Configuration for image compression
+        const IMAGE_MAX_WIDTH = 800;
+        const IMAGE_QUALITY = 0.7;
+        
+        /**
+         * Displays a message in the message box.
+         * @param {string} message The message to display.
+         * @param {string} type The type of message (e.g., 'info', 'success', 'warning', 'error').
+         */
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.className = `message-box ${type}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000); // Hide after 5 seconds
+        }
+
+        /**
+         * Converts an Image File object to a Base64 encoded string.
+         * Used internally to load image data for compression.
+         * @param {File} imageFile The image file to convert.
+         * @returns {Promise<string>} A promise that resolves with the Base64 string.
+         */
+        function fileToDataURL(imageFile) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(imageFile);
+            });
+        }
+
+        /**
+         * Compresses an image and returns its Base64 representation.
+         * Resizes the image if its width exceeds IMAGE_MAX_WIDTH and applies IMAGE_QUALITY.
+         * @param {File} imageFile The image file to compress.
+         * @returns {Promise<string>} A promise that resolves with the compressed Base64 string.
+         */
+        async function compressImage(imageFile) {
+            return new Promise(async (resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > IMAGE_MAX_WIDTH) {
+                        height = Math.round((height * IMAGE_MAX_WIDTH) / width);
+                        width = IMAGE_MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    try {
+                        const compressedDataUrl = canvas.toDataURL(imageFile.type, IMAGE_QUALITY);
+                        resolve(compressedDataUrl);
+                    } catch (error) {
+                        reject(new Error("Failed to compress image: " + error.message));
+                    }
+                };
+                img.onerror = () => reject(new Error("Failed to load image for compression."));
+
+                try {
+                    const dataUrl = await fileToDataURL(imageFile);
+                    img.src = dataUrl;
+                } catch (error) {
+                    reject(new Error("Failed to read image file: " + error.message));
+                }
+            });
+        }
+        
+        /**
+         * Fetches the user's public IP address from a third-party service.
+         * @returns {Promise<string>} The user's IP address or a default error string.
+         */
+        async function getIpAddress() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                console.error("Could not fetch IP address:", error);
+                return 'Unknown IP';
+            }
+        }
+
+        /**
+         * Displays the fetched images in the UI.
+         * @param {Array<Object>} images An array of image objects.
+         */
+        function displayImages(images) {
+            imageDisplayArea.innerHTML = ''; // Clear previous images
+
+            if (images.length === 0) {
+                noImagesMessage.classList.remove('hidden');
+                imageDisplayArea.appendChild(noImagesMessage);
+                return;
+            } else {
+                noImagesMessage.classList.add('hidden');
+            }
+
+            images.forEach(img => {
+                const imgElement = document.createElement('div');
+                imgElement.className = 'image-item';
+                imgElement.innerHTML = `
+                    <div class="image-info"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
+                    <img src="${img.data}" alt="${img.name}" loading="lazy">
+                    <div class="image-info mt-auto pt-2">${img.name}</div>
+                `;
+                imageDisplayArea.appendChild(imgElement);
+            });
+        }
+
+        /**
+         * Handles the image upload process, now using Firestore.
+         */
+        async function handleUpload() {
+            const file = imageInput.files[0];
+            if (!file) {
+                showMessage('Please select an image file to upload.', 'warning');
+                return;
+            }
+            
+            uploadBtn.disabled = true;
+            uploadSpinner.classList.remove('hidden');
+            uploadBtn.textContent = 'Uploading...';
+
+            try {
+                showMessage('Compressing image...', 'info');
+                const compressedDataUrl = await compressImage(file);
+                const ipAddress = await getIpAddress();
+                
+                // Add new image to Firestore
+                const newImage = {
+                    name: file.name,
+                    type: file.type,
+                    data: compressedDataUrl,
+                    timestamp: Date.now(),
+                    ipAddress: ipAddress
+                };
+                
+                const collectionPath = `/artifacts/${appId}/public/data/images`;
+                await addDoc(collection(db, collectionPath), newImage);
+
+                showMessage('Image uploaded successfully!', 'success');
+                imageInput.value = '';
+                
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                showMessage('Error uploading image: ' + error.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadSpinner.classList.add('hidden');
+                uploadBtn.textContent = 'Upload to the Cloud';
+            }
+        }
+
+        // Initialize and set up event listeners
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Password logic
+            passwordSubmitBtn.addEventListener('click', () => {
+                const enteredPassword = passwordInput.value;
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTimePassword = hours + minutes;
+                
+                if (enteredPassword === currentTimePassword) {
+                    passwordContent.remove();
+                    mainContent.classList.remove('hidden');
+                } else {
+                    passwordMessage.textContent = 'Incorrect password. Please try again.';
+                    passwordMessage.classList.remove('hidden');
+                    passwordInput.value = '';
+                    setTimeout(() => { passwordMessage.classList.add('hidden'); }, 3000);
+                }
+            });
+            
+            // Firebase Auth and Firestore listener
+            try {
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase auth error:", error);
+            }
+            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    userId = user.uid;
+                    const collectionPath = `/artifacts/${appId}/public/data/images`;
+                    const imagesRef = collection(db, collectionPath);
+                    
+                    // Listen for real-time updates from Firestore
+                    onSnapshot(imagesRef, (snapshot) => {
+                        const images = [];
+                        snapshot.forEach(doc => {
+                            images.push(doc.data());
+                        });
+                        
+                        // Sort images by timestamp in descending order (newest first)
+                        images.sort((a, b) => b.timestamp - a.timestamp);
+                        displayImages(images);
+                    }, (error) => {
+                        console.error("Firestore error:", error);
+                        showMessage("Error fetching images: " + error.message, 'error');
+                    });
+                } else {
+                    console.log("No user signed in.");
+                }
+            });
+
+            uploadBtn.addEventListener('click', handleUpload);
+        });
+    </script>
+</body>
+</html>

@@ -190,7 +190,7 @@
             
             <!-- User ID and info -->
             <div class="text-center text-sm text-gray-500 mb-4">
-                Your User ID: <span id="user-id">Loading...</span>
+                Your User ID: <span id="user-id" class="font-mono text-gray-800">Loading...</span>
             </div>
 
             <!-- Upload Section -->
@@ -221,15 +221,14 @@
     <!-- Main Application Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, addDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+        
         // DOM elements
         const imageInput = document.getElementById('image-input');
         const uploadBtn = document.getElementById('upload-btn');
@@ -378,11 +377,9 @@
                 auth = getAuth(app);
                 storage = getStorage(app); // Get a reference to Firebase Storage
                 
-                if (authToken) {
-                    await signInWithCustomToken(auth, authToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // Sign in anonymously as the primary auth method
+                await signInAnonymously(auth);
+
             } catch (error) {
                 console.error("Firebase initialization or auth error:", error);
             }

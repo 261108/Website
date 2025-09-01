@@ -121,6 +121,21 @@
             background-color: #2563eb;
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
         }
+        
+        .btn-secondary {
+            background-color: #64748b;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+        }
 
         .loading-spinner {
             border: 4px solid rgba(255, 255, 255, 0.2);
@@ -150,6 +165,17 @@
             justify-content: center;
             padding: 2rem;
             text-align: center;
+        }
+        
+        .description-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-size: 0.8rem;
+            color: #475569;
+            margin-top: 0.75rem;
+            word-break: break-word;
         }
     </style>
 </head>
@@ -262,6 +288,15 @@
             setTimeout(() => {
                 messageBox.classList.add('hidden');
             }, 5000); // Hide after 5 seconds
+        }
+        
+        /**
+         * Converts a data URL to a Base64 string without the prefix.
+         * @param {string} dataUrl The data URL string.
+         * @returns {string} The Base64 portion of the data URL.
+         */
+        function dataUrlToBase64(dataUrl) {
+            return dataUrl.split(',')[1];
         }
 
         /**
@@ -446,10 +481,15 @@
             images.forEach(img => {
                 const imgElement = document.createElement('div');
                 imgElement.className = 'image-item';
+                imgElement.setAttribute('data-image-data', img.data);
                 imgElement.innerHTML = `
                     <div class="image-info"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
                     <img src="${img.data}" alt="${img.name}" loading="lazy">
                     <div class="image-info mt-auto pt-2">${img.name}</div>
+                    <button class="btn-secondary w-full mt-4 describe-btn" data-image-id="${img.id}">
+                        ✨ Describe Image
+                    </button>
+                    <div class="description-box hidden"></div>
                 `;
                 imageDisplayArea.appendChild(imgElement);
             });
@@ -512,6 +552,46 @@
                 uploadBtn.textContent = 'Upload to the Cloud';
             }
         }
+        
+        /**
+         * Fetches a description of an image using the Gemini API.
+         * @param {string} base64Data The Base64 encoded image data.
+         * @param {string} mimeType The MIME type of the image (e.g., 'image/png').
+         * @returns {Promise<string>} A promise that resolves with the image description.
+         */
+        async function getGeminiImageDescription(base64Data, mimeType) {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: "Describe this image in detail." },
+                        { inlineData: { mimeType: mimeType, data: base64Data } }
+                    ]
+                }]
+            };
+
+            let response;
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                return text || 'Could not generate a description.';
+            } catch (error) {
+                console.error("Error fetching Gemini description:", error);
+                return `Error: ${error.message}`;
+            }
+        }
 
         // Initialize Firebase and set up event listeners when the DOM is ready
         document.addEventListener('DOMContentLoaded', async () => {
@@ -537,6 +617,41 @@
             });
 
             uploadBtn.addEventListener('click', handleUpload);
+            
+            // Event delegation for dynamically created "Describe" buttons
+            imageDisplayArea.addEventListener('click', async (event) => {
+                const target = event.target;
+                if (target.classList.contains('describe-btn')) {
+                    const imageItem = target.closest('.image-item');
+                    const imageData = imageItem.getAttribute('data-image-data');
+                    const descriptionBox = imageItem.querySelector('.description-box');
+                    const imageElement = imageItem.querySelector('img');
+
+                    if (!imageData || !imageElement) {
+                        descriptionBox.textContent = "Error: Image data not found.";
+                        descriptionBox.classList.remove('hidden');
+                        return;
+                    }
+
+                    target.disabled = true;
+                    target.textContent = 'Analyzing...';
+                    descriptionBox.classList.remove('hidden');
+                    descriptionBox.textContent = 'Gemini is thinking...';
+                    
+                    try {
+                        const base64Data = dataUrlToBase64(imageData);
+                        const mimeType = imageElement.src.split(';')[0].split(':')[1];
+                        const description = await getGeminiImageDescription(base64Data, mimeType);
+                        descriptionBox.textContent = description;
+                    } catch (error) {
+                        descriptionBox.textContent = `Error: Failed to get description.`;
+                        console.error("Failed to describe image:", error);
+                    } finally {
+                        target.disabled = false;
+                        target.textContent = '✨ Describe Image';
+                    }
+                }
+            });
         });
     </script>
 </body>

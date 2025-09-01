@@ -213,7 +213,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Main Application Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -224,13 +224,6 @@
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        // Initialize Firebase services
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId = null;
-        
         // DOM elements
         const imageInput = document.getElementById('image-input');
         const uploadBtn = document.getElementById('upload-btn');
@@ -239,7 +232,6 @@
         const messageBox = document.getElementById('message-box');
         const uploadSpinner = document.getElementById('upload-spinner');
         
-        // Password-related DOM elements
         const passwordContent = document.getElementById('password-content');
         const passwordInput = document.getElementById('password-input');
         const passwordSubmitBtn = document.getElementById('password-submit-btn');
@@ -250,6 +242,10 @@
         const IMAGE_MAX_WIDTH = 800;
         const IMAGE_QUALITY = 0.7;
         
+        let db = null;
+        let auth = null;
+        let userId = null;
+
         /**
          * Displays a message in the message box.
          * @param {string} message The message to display.
@@ -409,36 +405,22 @@
             }
         }
 
-        // Initialize and set up event listeners
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Password logic
-            passwordSubmitBtn.addEventListener('click', () => {
-                const enteredPassword = passwordInput.value;
-                const now = new Date();
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const currentTimePassword = hours + minutes;
-                
-                if (enteredPassword === currentTimePassword) {
-                    passwordContent.remove();
-                    mainContent.classList.remove('hidden');
-                } else {
-                    passwordMessage.textContent = 'Incorrect password. Please try again.';
-                    passwordMessage.classList.remove('hidden');
-                    passwordInput.value = '';
-                    setTimeout(() => { passwordMessage.classList.add('hidden'); }, 3000);
-                }
-            });
-            
-            // Firebase Auth and Firestore listener
+        /**
+         * Initializes Firebase and sets up Firestore listeners after password check.
+         */
+        async function initializeFirebase() {
             try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
                 if (authToken) {
                     await signInWithCustomToken(auth, authToken);
                 } else {
                     await signInAnonymously(auth);
                 }
             } catch (error) {
-                console.error("Firebase auth error:", error);
+                console.error("Firebase initialization or auth error:", error);
             }
             
             onAuthStateChanged(auth, (user) => {
@@ -461,12 +443,37 @@
                         console.error("Firestore error:", error);
                         showMessage("Error fetching images: " + error.message, 'error');
                     });
+
+                    // Add the upload listener after Firebase is ready
+                    uploadBtn.addEventListener('click', handleUpload);
+
                 } else {
                     console.log("No user signed in.");
                 }
             });
-
-            uploadBtn.addEventListener('click', handleUpload);
+        }
+        
+        // Initialize and set up event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Password logic
+            passwordSubmitBtn.addEventListener('click', () => {
+                const enteredPassword = passwordInput.value;
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const currentTimePassword = hours + minutes;
+                
+                if (enteredPassword === currentTimePassword) {
+                    passwordContent.remove();
+                    mainContent.classList.remove('hidden');
+                    initializeFirebase(); // Initialize Firebase only after password is correct
+                } else {
+                    passwordMessage.textContent = 'Incorrect password. Please try again.';
+                    passwordMessage.classList.remove('hidden');
+                    passwordInput.value = '';
+                    setTimeout(() => { passwordMessage.classList.add('hidden'); }, 3000);
+                }
+            });
         });
     </script>
 </body>

@@ -175,7 +175,6 @@
         <!-- Password Content -->
         <div id="password-content">
             <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Enter Password</h1>
-            <p class="text-sm text-gray-500 mb-4">Hint: The password is the current time in HHMM format.</p>
             <div class="w-full max-w-sm mb-4">
                 <input type="text" id="password-input" class="w-full p-4 border border-gray-300 rounded-xl text-center text-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="" maxlength="4">
             </div>
@@ -188,7 +187,6 @@
         <!-- Main App Content -->
         <div id="main-content" class="w-full hidden">
             <h1 class="text-3xl font-extrabold text-center text-gray-800 mb-4">Rushan's Free Cloud</h1>
-            <p id="userIdDisplay" class="font-mono text-xs p-2 bg-gray-100 rounded-md break-all text-center mb-4">User ID: Loading...</p>
 
             <!-- Upload Section -->
             <div class="upload-section bg-gray-50 p-6 rounded-xl border border-gray-200">
@@ -219,7 +217,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, addDoc, onSnapshot, collection, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -239,7 +237,6 @@
         const passwordSubmitBtn = document.getElementById('password-submit-btn');
         const passwordMessage = document.getElementById('password-message');
         const mainContent = document.getElementById('main-content');
-        const userIdDisplay = document.getElementById('userIdDisplay');
 
         const MAX_UPLOAD_SIZE_BYTES = 900 * 1024; // Limit to 900KB to be safe with Firestore's 1MB limit
 
@@ -312,10 +309,8 @@
                 imgElement.className = 'image-item';
 
                 // Format the timestamp into a readable date and time string
-                let formattedTimestamp = 'N/A';
-                if (img.timestamp && img.timestamp.toDate) {
-                    formattedTimestamp = img.timestamp.toDate().toLocaleString();
-                }
+                const timestampDate = new Date(img.timestamp);
+                const formattedTimestamp = timestampDate.toLocaleString();
 
                 imgElement.innerHTML = `
                     <div class="image-info mb-2"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
@@ -360,7 +355,7 @@
                 const newImage = {
                     name: file.name,
                     data: imageDataUrl,
-                    timestamp: serverTimestamp(), // Use Firestore serverTimestamp
+                    timestamp: Date.now(),
                     ipAddress: ipAddress
                 };
                 
@@ -401,7 +396,6 @@
             onAuthStateChanged(auth, (user) => {
                 if (user) {
                     userId = user.uid;
-                    userIdDisplay.textContent = `User ID: ${userId}`;
                     const collectionPath = `/artifacts/${appId}/public/data/images`;
                     const imagesRef = collection(db, collectionPath);
                     
@@ -413,12 +407,7 @@
                         });
                         
                         // Sort images by timestamp in descending order (newest first)
-                        images.sort((a, b) => {
-                            if (a.timestamp && b.timestamp) {
-                                return b.timestamp.toMillis() - a.timestamp.toMillis();
-                            }
-                            return 0;
-                        });
+                        images.sort((a, b) => b.timestamp - a.timestamp);
                         displayImages(images);
                     }, (error) => {
                         console.error("Firestore error:", error);

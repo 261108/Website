@@ -351,7 +351,8 @@
                     ipAddress: ipAddress
                 };
                 
-                const collectionPath = `/artifacts/${appId}/public/data/images`;
+                // Changed collection path to a private user-specific one to fix permissions
+                const collectionPath = `/artifacts/${appId}/users/${userId}/images`;
                 await addDoc(collection(db, collectionPath), newImage);
 
                 showMessage('Image uploaded successfully!', 'success');
@@ -388,7 +389,8 @@
                 if (user) {
                     userId = user.uid;
                     userIdSpan.textContent = userId;
-                    const collectionPath = `/artifacts/${appId}/public/data/images`;
+                    // Changed collection path to a private user-specific one to fix permissions
+                    const collectionPath = `/artifacts/${appId}/users/${userId}/images`;
                     const imagesRef = collection(db, collectionPath);
                     
                     // Listen for real-time updates from Firestore

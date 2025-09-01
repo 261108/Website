@@ -307,10 +307,17 @@
             images.forEach(img => {
                 const imgElement = document.createElement('div');
                 imgElement.className = 'image-item';
+
+                // Format the timestamp into a readable date and time string
+                const timestampDate = new Date(img.timestamp);
+                const formattedTimestamp = timestampDate.toLocaleString();
+
                 imgElement.innerHTML = `
                     <div class="image-info mb-2"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
                     <img src="${img.data}" alt="${img.name}" loading="lazy">
                     <div class="image-info mt-auto pt-2">${img.name}</div>
+                    <!-- Added a div for the timestamp -->
+                    <div class="image-info mt-1"><b>Uploaded:</b> ${formattedTimestamp}</div>
                 `;
                 imageDisplayArea.appendChild(imgElement);
             });

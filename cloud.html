@@ -238,13 +238,13 @@
         const passwordMessage = document.getElementById('password-message');
         const mainContent = document.getElementById('main-content');
 
-        // Configuration for image compression
-        const IMAGE_MAX_WIDTH = 800;
-        const IMAGE_QUALITY = 0.7;
-        
+        const MAX_UPLOAD_SIZE_BYTES = 900 * 1024; // Limit to 900KB to be safe with Firestore's 1MB limit
+
         let db = null;
         let auth = null;
         let userId = null;
+        let unsubscribeFromImages = null;
+
 
         /**
          * Displays a message in the message box.
@@ -261,65 +261,6 @@
         }
 
         /**
-         * Converts an Image File object to a Base64 encoded string.
-         * Used internally to load image data for compression.
-         * @param {File} imageFile The image file to convert.
-         * @returns {Promise<string>} A promise that resolves with the Base64 string.
-         */
-        function fileToDataURL(imageFile) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(imageFile);
-            });
-        }
-
-        /**
-         * Compresses an image and returns its Base64 representation.
-         * Resizes the image if its width exceeds IMAGE_MAX_WIDTH and applies IMAGE_QUALITY.
-         * @param {File} imageFile The image file to compress.
-         * @returns {Promise<string>} A promise that resolves with the compressed Base64 string.
-         */
-        async function compressImage(imageFile) {
-            return new Promise(async (resolve, reject) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > IMAGE_MAX_WIDTH) {
-                        height = Math.round((height * IMAGE_MAX_WIDTH) / width);
-                        width = IMAGE_MAX_WIDTH;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    try {
-                        const compressedDataUrl = canvas.toDataURL(imageFile.type, IMAGE_QUALITY);
-                        resolve(compressedDataUrl);
-                    } catch (error) {
-                        reject(new Error("Failed to compress image: " + error.message));
-                    }
-                };
-                img.onerror = () => reject(new Error("Failed to load image for compression."));
-
-                try {
-                    const dataUrl = await fileToDataURL(imageFile);
-                    img.src = dataUrl;
-                } catch (error) {
-                    reject(new Error("Failed to read image file: " + error.message));
-                }
-            });
-        }
-        
-        /**
          * Fetches the user's public IP address from a third-party service.
          * @returns {Promise<string>} The user's IP address or a default error string.
          */
@@ -332,6 +273,20 @@
                 console.error("Could not fetch IP address:", error);
                 return 'Unknown IP';
             }
+        }
+        
+        /**
+         * Converts a file to a Base64 data URL.
+         * @param {File} file The file to convert.
+         * @returns {Promise<string>} A promise that resolves with the Base64 string.
+         */
+        function fileToDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
         }
 
         /**
@@ -353,16 +308,16 @@
                 const imgElement = document.createElement('div');
                 imgElement.className = 'image-item';
                 imgElement.innerHTML = `
-                    <div class="image-info"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
+                    <div class="image-info mb-2"><b>IP Address:</b> ${img.ipAddress || 'N/A'}</div>
                     <img src="${img.data}" alt="${img.name}" loading="lazy">
                     <div class="image-info mt-auto pt-2">${img.name}</div>
                 `;
                 imageDisplayArea.appendChild(imgElement);
             });
         }
-
+        
         /**
-         * Handles the image upload process, now using Firestore.
+         * Handles the image upload process, now using Firestore directly.
          */
         async function handleUpload() {
             const file = imageInput.files[0];
@@ -376,15 +331,23 @@
             uploadBtn.textContent = 'Uploading...';
 
             try {
-                showMessage('Compressing image...', 'info');
-                const compressedDataUrl = await compressImage(file);
-                const ipAddress = await getIpAddress();
+                showMessage('Reading image...', 'info');
+                const imageDataUrl = await fileToDataURL(file);
+
+                // Get size of Base64 string (approximate)
+                const dataSize = imageDataUrl.length * 0.75;
+                if (dataSize > MAX_UPLOAD_SIZE_BYTES) {
+                    showMessage(`Image is too large (${(dataSize / 1024).toFixed(2)}KB). Max allowed is ${(MAX_UPLOAD_SIZE_BYTES / 1024).toFixed(0)}KB.`, 'error');
+                    return;
+                }
                 
-                // Add new image to Firestore
+                // Get IP address
+                const ipAddress = await getIpAddress();
+
+                // Add document to Firestore with image metadata
                 const newImage = {
                     name: file.name,
-                    type: file.type,
-                    data: compressedDataUrl,
+                    data: imageDataUrl,
                     timestamp: Date.now(),
                     ipAddress: ipAddress
                 };
@@ -430,10 +393,10 @@
                     const imagesRef = collection(db, collectionPath);
                     
                     // Listen for real-time updates from Firestore
-                    onSnapshot(imagesRef, (snapshot) => {
+                    unsubscribeFromImages = onSnapshot(imagesRef, (snapshot) => {
                         const images = [];
                         snapshot.forEach(doc => {
-                            images.push(doc.data());
+                            images.push({ id: doc.id, ...doc.data() });
                         });
                         
                         // Sort images by timestamp in descending order (newest first)
